@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Face Detection</title>
+</head>
+<body>
+    <h1>Real-Time Face Detection</h1>
+    <video id="video" width="640" height="480" autoplay></video>
+    <canvas id="canvas" style="display:none;"></canvas>
+    <div id="result"></div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const context = canvas.getContext('2d');
+        const result = document.getElementById('result');
+
+        // Get access to the camera
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ video: true }).then(function(stream) {
+                video.srcObject = stream;
+                video.play();
+            });
+        }
+
+        // Capture frames from the video and send to the backend
+        setInterval(() => {
+            context.drawImage(video, 0, 0, 640, 480);
+            const frame = canvas.toDataURL('image/jpeg');
+
+            fetch('http://localhost:8000/match_faces/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ image: frame })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.match) {
+                    result.innerHTML = `Nom: ${data.match.nom}, Prénom: ${data.match.prenom}, Age: ${data.match.age}`;
+                } else {
+                    result.innerHTML = 'No Match Found';
+                }
+            });
+        }, 2000); // Send a frame every 2 seconds
+    </script>
+</body>
+</html>
